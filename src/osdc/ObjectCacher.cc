@@ -892,7 +892,7 @@ void ObjectCacher::bh_read_finish(int64_t poolid, sobject_t oid,
   read_cond.Signal();
 }
 
-void ObjectCacher::bh_write_adjacencies(BufferHead *bh, utime_t cutoff,
+void ObjectCacher::bh_write_adjacencies(BufferHead *bh, ceph::real_time cutoff,
 					int64_t *max_amount, int *max_count)
 {
   list<BufferHead*> blist;
@@ -946,7 +946,7 @@ void ObjectCacher::bh_write_scattered(list<BufferHead*>& blist)
   Object *ob = blist.front()->ob;
   ob->get();
 
-  utime_t last_write;
+  ceph::real_time last_write;
   SnapContext snapc;
   vector<pair<loff_t, uint64_t> > ranges;
   vector<pair<uint64_t, bufferlist> > io_vec;

@@ -523,7 +523,7 @@ class ObjectCacher {
   void bh_read(BufferHead *bh, int op_flags);
   void bh_write(BufferHead *bh);
   void bh_write_scattered(list<BufferHead*>& blist);
-  void bh_write_adjacencies(BufferHead *bh, utime_t cutoff,
+  void bh_write_adjacencies(BufferHead *bh, ceph::real_time cutoff,
 			    int64_t *amount, int *max_count);
 
   void trim();
