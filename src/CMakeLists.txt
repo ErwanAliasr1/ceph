@@ -92,8 +92,14 @@ endif(USE_NSS)
 
 set(GCOV_PREFIX_STRIP 4)
 
-get_git_head_revision(GIT_REFSPEC CEPH_GIT_VER)
-git_describe(CEPH_GIT_NICE_VER --always)
+option(ENABLE_GIT_VERSION "build Ceph with git version string" ON)
+if(${ENABLE_GIT_VERSION})
+  get_git_head_revision(GIT_REFSPEC CEPH_GIT_VER)
+  git_describe(CEPH_GIT_NICE_VER --always)
+else(${ENABLE_GIT_VERSION})
+  set(CEPH_GIT_VER "no_version")
+  set(CEPH_GIT_NICE_VER "Development")
+endif(${ENABLE_GIT_VERSION})
 
 # Python stuff
 find_package(PythonInterp 2 QUIET)
@@ -660,11 +666,11 @@ add_custom_target(build_rocksdb
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/rocksdb
     COMMENT "rocksdb building")
 
-# add a dummy target to attach librocksdb.a and it's include_directories
-add_library(rocksdb INTERFACE)
-set_target_properties(rocksdb PROPERTIES INTERFACE_LINK_LIBRARIES "${CMAKE_SOURCE_DIR}/src/rocksdb/librocksdb.a") 
+# add a imported library for librocksdb.a 
+add_library(rocksdb STATIC IMPORTED)
+set_property(TARGET rocksdb PROPERTY IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/src/rocksdb/librocksdb.a") 
 add_dependencies(rocksdb build_rocksdb)
-target_include_directories(rocksdb INTERFACE "${CMAKE_SOURCE_DIR}/src/rocksdb/include")
+set(ROCKSDB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/src/rocksdb/include)
 
 add_subdirectory(kv)
 

@@ -533,7 +533,7 @@ KeyValueStore::KeyValueStore(const std::string &base,
   throttle_ops(g_ceph_context, "keyvaluestore_ops", g_conf->keyvaluestore_queue_max_ops),
   throttle_bytes(g_ceph_context, "keyvaluestore_bytes", g_conf->keyvaluestore_queue_max_bytes),
   op_finisher(g_ceph_context),
-  op_tp(g_ceph_context, "KeyValueStore::op_tp",
+  op_tp(g_ceph_context, "KeyValueStore::op_tp", "tp_kvstore",
         g_conf->keyvaluestore_op_threads, "keyvaluestore_op_threads"),
   op_wq(this, g_conf->keyvaluestore_op_thread_timeout,
         g_conf->keyvaluestore_op_thread_suicide_timeout, &op_tp),
@@ -730,6 +730,7 @@ int KeyValueStore::mkfs()
 int KeyValueStore::read_fsid(int fd, uuid_d *uuid)
 {
   char fsid_str[40];
+  memset(fsid_str, 0, sizeof(fsid_str));
   int ret = safe_read(fd, fsid_str, sizeof(fsid_str));
   if (ret < 0)
     return ret;
