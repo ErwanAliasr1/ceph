@@ -589,6 +589,17 @@ AS_IF([test "x$with_tcmalloc" != xno],
 	     ],
 	    [AC_MSG_FAILURE(
 		  [no tcmalloc found (use --without-tcmalloc to disable)])])])
+AS_IF([test "$HAVE_LIBTCMALLOC" = "1"],
+      [AC_LANG_PUSH([C++])
+       AC_CHECK_HEADER([gperftools/heap-profiler.h]
+                       [AC_DEFINE(HAVE_GPERFTOOLS_HEAP_PROFILER_H,
+                                  1,
+                                  [Have new gperftools.])])
+       AC_CHECK_HEADER([gperftools/malloc_extension.h]
+                       [AC_DEFINE(HAVE_GPERFTOOLS_MALLOC_EXTENSION_H,
+                                  1,
+                                  [Have new gperftools.])])
+       AC_LANG_POP([C++])])
 AM_CONDITIONAL(WITH_TCMALLOC, [test "$HAVE_LIBTCMALLOC" = "1"])
 
 # error out if --with-jemalloc and ! --without-tcmalloc
