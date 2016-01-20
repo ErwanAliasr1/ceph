@@ -13,6 +13,8 @@
 #undef dout_prefix
 #define dout_prefix *_dout << "throttle(" << name << " " << (void*)this << ") "
 
+using ceph::coarse_mono_clock;
+
 enum {
   l_throttle_first = 532430,
   l_throttle_val,
@@ -91,7 +93,7 @@ void Throttle::_reset_max(int64_t m)
 
 bool Throttle::_wait(int64_t c)
 {
-  utime_t start;
+  ceph::mono_time start;
   bool waited = false;
   if (_should_wait(c) || !cond.empty()) { // always wait behind other waiters.
     Cond *cv = new Cond;
@@ -100,7 +102,7 @@ bool Throttle::_wait(int64_t c)
       if (!waited) {
 	ldout(cct, 2) << "_wait waiting..." << dendl;
 	if (logger)
-	  start = ceph_clock_now(cct);
+	  start = coarse_mono_clock::now();
       }
       waited = true;
       cv->Wait(lock);
@@ -109,8 +111,7 @@ bool Throttle::_wait(int64_t c)
     if (waited) {
       ldout(cct, 3) << "_wait finished waiting" << dendl;
       if (logger) {
-	utime_t dur = ceph_clock_now(cct) - start;
-        logger->tinc(l_throttle_wait, dur);
+        logger->tinc(l_throttle_wait, coarse_mono_clock::now() - start);
       }
     }
 

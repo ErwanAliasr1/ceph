@@ -15,6 +15,8 @@ using std::string;
 #undef dout_prefix
 #define dout_prefix *_dout << "leveldb: "
 
+using ceph::coarse_mono_clock;
+
 class CephLevelDBLogger : public leveldb::Logger {
   CephContext *cct;
 public:
@@ -168,27 +170,25 @@ void LevelDBStore::close()
 
 int LevelDBStore::submit_transaction(KeyValueDB::Transaction t)
 {
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   LevelDBTransactionImpl * _t =
     static_cast<LevelDBTransactionImpl *>(t.get());
   leveldb::Status s = db->Write(leveldb::WriteOptions(), &(_t->bat));
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_leveldb_submit_latency, coarse_mono_clock::now() - start);
   logger->inc(l_leveldb_txns);
-  logger->tinc(l_leveldb_submit_latency, lat);
   return s.ok() ? 0 : -1;
 }
 
 int LevelDBStore::submit_transaction_sync(KeyValueDB::Transaction t)
 {
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   LevelDBTransactionImpl * _t =
     static_cast<LevelDBTransactionImpl *>(t.get());
   leveldb::WriteOptions options;
   options.sync = true;
   leveldb::Status s = db->Write(options, &(_t->bat));
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_leveldb_submit_sync_latency, coarse_mono_clock::now() - start);
   logger->inc(l_leveldb_txns);
-  logger->tinc(l_leveldb_submit_sync_latency, lat);
   return s.ok() ? 0 : -1;
 }
 
@@ -246,7 +246,7 @@ int LevelDBStore::get(
     const std::set<string> &keys,
     std::map<string, bufferlist> *out)
 {
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   KeyValueDB::Iterator it = get_iterator(prefix);
   for (std::set<string>::const_iterator i = keys.begin();
        i != keys.end();
@@ -257,9 +257,8 @@ int LevelDBStore::get(
     } else if (!it->valid())
       break;
   }
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_leveldb_get_latency, coarse_mono_clock::now() - start);
   logger->inc(l_leveldb_gets);
-  logger->tinc(l_leveldb_get_latency, lat);
   return 0;
 }
 
@@ -268,7 +267,7 @@ int LevelDBStore::get(const string &prefix,
 		  bufferlist *value)
 {
   assert(value && (value->length() == 0));
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   int r = 0;
   KeyValueDB::Iterator it = get_iterator(prefix);
   it->lower_bound(key);
@@ -277,9 +276,8 @@ int LevelDBStore::get(const string &prefix,
   } else {
     r = -ENOENT;
   }
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_leveldb_get_latency, coarse_mono_clock::now() - start);
   logger->inc(l_leveldb_gets);
-  logger->tinc(l_leveldb_get_latency, lat);
   return r;
 }
 

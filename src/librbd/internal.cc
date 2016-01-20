@@ -60,6 +60,7 @@ using ceph::bufferlist;
 using librados::snap_t;
 using librados::IoCtx;
 using librados::Rados;
+using ceph::coarse_mono_clock;
 
 namespace librbd {
 
@@ -2089,7 +2090,7 @@ int validate_pool(IoCtx &io_ctx, CephContext *cct) {
 		       int (*cb)(uint64_t, size_t, const char *, void *),
 		       void *arg)
   {
-    utime_t start_time, elapsed;
+    ceph::mono_time start_time;
 
     ldout(ictx->cct, 20) << "read_iterate " << ictx << " off = " << off
 			 << " len = " << len << dendl;
@@ -2110,7 +2111,7 @@ int validate_pool(IoCtx &io_ctx, CephContext *cct) {
     uint64_t left = mylen;
 
     RWLock::RLocker owner_locker(ictx->owner_lock);
-    start_time = ceph_clock_now(ictx->cct);
+    start_time = coarse_mono_clock::now();
     while (left > 0) {
       uint64_t period_off = off - (off % period);
       uint64_t read_len = min(period_off + period - off, left);
@@ -2136,8 +2137,7 @@ int validate_pool(IoCtx &io_ctx, CephContext *cct) {
       off += ret;
     }
 
-    elapsed = ceph_clock_now(ictx->cct) - start_time;
-    ictx->perfcounter->tinc(l_librbd_rd_latency, elapsed);
+    ictx->perfcounter->tinc(l_librbd_rd_latency, coarse_mono_clock::now() - start_time);
     ictx->perfcounter->inc(l_librbd_rd);
     ictx->perfcounter->inc(l_librbd_rd_bytes, mylen);
     return total_read;

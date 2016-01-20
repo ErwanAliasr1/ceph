@@ -52,6 +52,8 @@
 #undef dout_prefix
 #define dout_prefix *_dout << "librados: "
 
+using ceph::coarse_mono_clock;
+
 bool librados::RadosClient::ms_get_authorizer(int dest_type,
 					      AuthAuthorizer **authorizer,
 					      bool force_new) {
@@ -480,11 +482,11 @@ int librados::RadosClient::wait_for_osdmap()
 
     if (objecter->with_osdmap(std::mem_fn(&OSDMap::get_epoch)) == 0) {
       ldout(cct, 10) << __func__ << " waiting" << dendl;
-      utime_t start = ceph_clock_now(cct);
+      ceph::mono_time start = coarse_mono_clock::now();
       while (objecter->with_osdmap(std::mem_fn(&OSDMap::get_epoch)) == 0) {
 	cond.WaitInterval(cct, lock, timeout);
-	utime_t elapsed = ceph_clock_now(cct) - start;
-	if (!timeout.is_zero() && elapsed > timeout) {
+        ceph::mono_time end = coarse_mono_clock::now();
+	if (!timeout.is_zero() && duration_to_msec_double(end - start) > timeout) {
 	  lderr(cct) << "timed out waiting for first osdmap from monitors"
 		     << dendl;
 	  return -ETIMEDOUT;

@@ -18,7 +18,7 @@
 #include "msg/Message.h"
 
 struct MMonSubscribeAck : public Message {
-  __u32 interval;
+  __u32 interval; /* In seconds */
   uuid_d fsid;
   
   MMonSubscribeAck() : Message(CEPH_MSG_MON_SUBSCRIBE_ACK),

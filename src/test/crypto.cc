@@ -10,6 +10,8 @@
 
 #include "test/unit.h"
 
+using ceph::coarse_mono_clock;
+
 class CryptoEnvironment: public ::testing::Environment {
 public:
   void SetUp() {
@@ -166,7 +168,7 @@ TEST(AES, LoopKey) {
   get_random_bytes(r.c_str(), r.length());
   data.append(r);
 
-  utime_t start = ceph_clock_now(NULL);
+  ceph::mono_time start = coarse_mono_clock::now();
   int n = 100000;
 
   for (int i=0; i<n; ++i) {
@@ -176,7 +178,6 @@ TEST(AES, LoopKey) {
     ASSERT_EQ(r, 0);
   }
 
-  utime_t end = ceph_clock_now(NULL);
-  utime_t dur = end - start;
-  cout << n << " encoded in " << dur << std::endl;
+  ceph::mono_time end = coarse_mono_clock::now();
+  cout << n << " encoded in " << duration_to_sec_double(end - start) << std::endl;
 }

@@ -49,6 +49,8 @@ using namespace libradosstriper;
 #include "PoolDump.h"
 #include "RadosImport.h"
 
+using ceph::coarse_mono_clock;
+
 int rados_tool_sync(const std::map < std::string, std::string > &opts,
                              std::vector<const char*> &args);
 
@@ -510,7 +512,7 @@ class LoadGen {
 
   map<int, obj_info> objs;
 
-  utime_t start_time;
+  ceph::mono_time start_time;
 
   bool going_down;
 
@@ -566,12 +568,7 @@ public:
   }
 
   float time_passed() {
-    utime_t now = ceph_clock_now(g_ceph_context);
-    now -= start_time;
-    uint64_t ns = now.nsec();
-    float total = (float) ns / 1000000000.0;
-    total += now.sec();
-    return total;
+    return duration_to_sec_float(coarse_mono_clock::now() - start_time);
   }
 
   Mutex lock;
@@ -759,10 +756,10 @@ uint64_t LoadGen::gen_next_op()
 
 int LoadGen::run()
 {
-  start_time = ceph_clock_now(g_ceph_context);
-  utime_t end_time = start_time;
-  end_time += run_length;
-  utime_t stamp_time = start_time;
+  start_time = coarse_mono_clock::now();
+  std::chrono::seconds running_time(run_length);
+  ceph::mono_time end_time = start_time + running_time;
+  ceph::mono_time stamp_time = start_time;
   uint32_t total_sec = 0;
 
   while (1) {
@@ -770,7 +767,7 @@ int LoadGen::run()
     utime_t one_second(1, 0);
     cond.WaitInterval(g_ceph_context, lock, one_second);
     lock.Unlock();
-    utime_t now = ceph_clock_now(g_ceph_context);
+    ceph::mono_time now = coarse_mono_clock::now();
 
     if (now > end_time)
       break;
@@ -781,7 +778,7 @@ int LoadGen::run()
     uint64_t completed = total_completed;
     lock.Unlock();
 
-    if (now - stamp_time >= utime_t(1, 0)) {
+    if (now - stamp_time >= std::chrono::seconds (1)) {
       double rate = (double)cur_completed_rate() / (1024 * 1024);
       ++total_sec;
       std::streamsize original_precision = cout.precision();

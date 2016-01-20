@@ -22,6 +22,8 @@
 #include "common/Clock.h"
 #include "common/valgrind.h"
 
+using ceph::coarse_mono_clock;
+
 Mutex::Mutex(const std::string &n, bool r, bool ld,
 	     bool bt,
 	     CephContext *cct) :
@@ -95,9 +97,9 @@ void Mutex::Lock(bool no_lockdep) {
   if (lockdep && g_lockdep && !no_lockdep) _will_lock();
 
   if (logger && cct && cct->_conf->mutex_perf_counter) {
-    utime_t start;
+
     // instrumented mutex enabled
-    start = ceph_clock_now(cct);
+    ceph::mono_time start = coarse_mono_clock::now();
     if (TryLock()) {
       goto out;
     }
@@ -105,7 +107,7 @@ void Mutex::Lock(bool no_lockdep) {
     r = pthread_mutex_lock(&_m);
 
     logger->tinc(l_mutex_wait,
-		 ceph_clock_now(cct) - start);
+		 coarse_mono_clock::now() - start);
   } else {
     r = pthread_mutex_lock(&_m);
   }

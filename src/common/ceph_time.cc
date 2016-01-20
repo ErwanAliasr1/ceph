@@ -104,3 +104,21 @@ namespace ceph {
     return m;
   }
 };
+
+
+// Some helpers to convert duration into common types
+// Useful like if you need to extract a double from a 'ceph::coarse_mono_clock::now()' difference
+double duration_to_sec_double(std::chrono::duration<long unsigned int, std::ratio<1l, 1000000000l> > duration) {
+  std::chrono::duration<double,  std::ratio<1>> converted_duration = duration;
+  return converted_duration.count();
+}
+
+float duration_to_sec_float(std::chrono::duration<long unsigned int, std::ratio<1l, 1000000000l> > duration) {
+  std::chrono::duration<float,  std::ratio<1>> converted_duration = duration;
+  return converted_duration.count();
+}
+
+double duration_to_msec_double(std::chrono::duration<long unsigned int, std::ratio<1l, 1000000000l> > duration) {
+  std::chrono::duration<double,  std::milli> converted_duration = duration;
+  return converted_duration.count();
+}

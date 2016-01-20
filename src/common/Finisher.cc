@@ -8,6 +8,7 @@
 #define dout_subsys ceph_subsys_finisher
 #undef dout_prefix
 #define dout_prefix *_dout << "finisher(" << this << ") "
+using ceph::coarse_mono_clock;
 
 void Finisher::start()
 {
@@ -44,12 +45,12 @@ void *Finisher::finisher_thread_entry()
   finisher_lock.Lock();
   ldout(cct, 10) << "finisher_thread start" << dendl;
 
-  utime_t start;
+  ceph::mono_time start;
   while (!finisher_stop) {
     /// Every time we are woken up, we process the queue until it is empty.
     while (!finisher_queue.empty()) {
       if (logger)
-        start = ceph_clock_now(cct);
+        start = coarse_mono_clock::now();
       // To reduce lock contention, we swap out the queue to process.
       // This way other threads can submit new contexts to complete while we are working.
       vector<Context*> ls;
@@ -78,7 +79,7 @@ void *Finisher::finisher_thread_entry()
 	}
 	if (logger) {
 	  logger->dec(l_finisher_queue_len);
-          logger->tinc(l_finisher_complete_lat, ceph_clock_now(cct) - start);
+          logger->tinc(l_finisher_complete_lat, coarse_mono_clock::now() - start);
         }
       }
       ldout(cct, 10) << "finisher_thread done with " << ls << dendl;

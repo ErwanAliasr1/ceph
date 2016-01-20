@@ -47,8 +47,8 @@ struct bench_data {
   double avg_latency;
   struct bench_interval_data idata; // data that is updated by time intervals and not by events
   struct bench_history history; // data history, used to calculate stddev
-  utime_t cur_latency; //latency of last completed transaction
-  utime_t start_time; //start time for benchmark
+  double cur_latency; //latency of last completed transaction
+  ceph::mono_time start_time; //start time for benchmark
   char *object_contents; //pointer to the contents written to each object
 };
 

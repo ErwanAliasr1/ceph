@@ -56,7 +56,7 @@ namespace librbd {
     int ref;
     bool released;
     ImageCtx *ictx;
-    utime_t start_time;
+    ceph::mono_time start_time;
     aio_type_t aio_type;
 
     Striper::StripedReadResult destriper;

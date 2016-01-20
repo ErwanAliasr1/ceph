@@ -128,6 +128,8 @@ using namespace std;
 #define O_DIRECT 0x0
 #endif
 
+using ceph::coarse_mono_clock;
+
 void client_flush_set_callback(void *p, ObjectCacher::ObjectSet *oset)
 {
   Client *client = static_cast<Client*>(p);
@@ -8250,7 +8252,7 @@ int Client::_write(Fh *f, int64_t offset, uint64_t size, const char *buf,
   ldout(cct, 10) << "cur file size is " << in->size << dendl;
 
   // time it.
-  utime_t start = ceph_clock_now(cct);
+  ceph::mono_time start = coarse_mono_clock::now();
 
   if (in->inline_version == 0) {
     int r = _getattr(in, CEPH_STAT_CAP_INLINE_DATA, -1, -1, true);
@@ -8277,7 +8279,7 @@ int Client::_write(Fh *f, int64_t offset, uint64_t size, const char *buf,
       }
   }
 
-  utime_t lat;
+  ceph::mono_time lat;
   uint64_t totalwritten;
   int have;
   int r = get_caps(in, CEPH_CAP_FILE_WR, CEPH_CAP_FILE_BUFFER, &have, endoff);
@@ -8382,9 +8384,8 @@ int Client::_write(Fh *f, int64_t offset, uint64_t size, const char *buf,
   // if we get here, write was successful, update client metadata
 success:
   // time
-  lat = ceph_clock_now(cct);
-  lat -= start;
-  logger->tinc(l_c_wrlat, lat);
+  lat = coarse_mono_clock::now();
+  logger->tinc(l_c_wrlat, lat - start);
 
   totalwritten = size;
   r = (int)totalwritten;

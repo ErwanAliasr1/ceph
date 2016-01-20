@@ -32,6 +32,8 @@ using std::string;
 #undef dout_prefix
 #define dout_prefix *_dout << "rocksdb: "
 
+using ceph::coarse_mono_clock;
+
 class CephRocksdbLogger : public rocksdb::Logger {
   CephContext *cct;
 public:
@@ -295,30 +297,28 @@ void RocksDBStore::close()
 
 int RocksDBStore::submit_transaction(KeyValueDB::Transaction t)
 {
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   RocksDBTransactionImpl * _t =
     static_cast<RocksDBTransactionImpl *>(t.get());
   rocksdb::WriteOptions woptions;
   woptions.disableWAL = disableWAL;
   rocksdb::Status s = db->Write(woptions, _t->bat);
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_rocksdb_submit_latency, coarse_mono_clock::now() - start);
   logger->inc(l_rocksdb_txns);
-  logger->tinc(l_rocksdb_submit_latency, lat);
   return s.ok() ? 0 : -1;
 }
 
 int RocksDBStore::submit_transaction_sync(KeyValueDB::Transaction t)
 {
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   RocksDBTransactionImpl * _t =
     static_cast<RocksDBTransactionImpl *>(t.get());
   rocksdb::WriteOptions woptions;
   woptions.sync = true;
   woptions.disableWAL = disableWAL;
   rocksdb::Status s = db->Write(woptions, _t->bat);
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_rocksdb_submit_sync_latency, coarse_mono_clock::now() - start);
   logger->inc(l_rocksdb_txns);
-  logger->tinc(l_rocksdb_submit_sync_latency, lat);
   return s.ok() ? 0 : -1;
 }
 int RocksDBStore::get_info_log_level(string info_log_level)
@@ -388,7 +388,7 @@ int RocksDBStore::get(
     const std::set<string> &keys,
     std::map<string, bufferlist> *out)
 {
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   KeyValueDB::Iterator it = get_iterator(prefix);
   for (std::set<string>::const_iterator i = keys.begin();
        i != keys.end();
@@ -399,9 +399,8 @@ int RocksDBStore::get(
     } else if (!it->valid())
       break;
   }
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_rocksdb_get_latency, coarse_mono_clock::now() - start);
   logger->inc(l_rocksdb_gets);
-  logger->tinc(l_rocksdb_get_latency, lat);
   return 0;
 }
 
@@ -411,7 +410,7 @@ int RocksDBStore::get(
     bufferlist *out)
 {
   assert(out && (out->length() == 0));
-  utime_t start = ceph_clock_now(g_ceph_context);
+  ceph::mono_time start = coarse_mono_clock::now();
   int r = 0;
   KeyValueDB::Iterator it = get_iterator(prefix);
   it->lower_bound(key);
@@ -420,9 +419,8 @@ int RocksDBStore::get(
   } else {
     r = -ENOENT;
   }
-  utime_t lat = ceph_clock_now(g_ceph_context) - start;
+  logger->tinc(l_rocksdb_get_latency, coarse_mono_clock::now() - start);
   logger->inc(l_rocksdb_gets);
-  logger->tinc(l_rocksdb_get_latency, lat);
   return r;
 }
 

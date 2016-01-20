@@ -26,6 +26,8 @@
 #undef dout_prefix
 #define dout_prefix *_dout << "librbd::AioCompletion: "
 
+using ceph::coarse_mono_clock;
+
 namespace librbd {
 
   int AioCompletion::wait_for_complete() {
@@ -65,21 +67,19 @@ namespace librbd {
 
   void AioCompletion::complete(CephContext *cct) {
     tracepoint(librbd, aio_complete_enter, this, rval);
-    utime_t elapsed;
     assert(lock.is_locked());
-    elapsed = ceph_clock_now(cct) - start_time;
     switch (aio_type) {
     case AIO_TYPE_OPEN:
     case AIO_TYPE_CLOSE:
       break;
     case AIO_TYPE_READ:
-      ictx->perfcounter->tinc(l_librbd_rd_latency, elapsed); break;
+      ictx->perfcounter->tinc(l_librbd_rd_latency, coarse_mono_clock::now() - start_time); break;
     case AIO_TYPE_WRITE:
-      ictx->perfcounter->tinc(l_librbd_wr_latency, elapsed); break;
+      ictx->perfcounter->tinc(l_librbd_wr_latency, coarse_mono_clock::now() - start_time); break;
     case AIO_TYPE_DISCARD:
-      ictx->perfcounter->tinc(l_librbd_discard_latency, elapsed); break;
+      ictx->perfcounter->tinc(l_librbd_discard_latency, coarse_mono_clock::now() - start_time); break;
     case AIO_TYPE_FLUSH:
-      ictx->perfcounter->tinc(l_librbd_aio_flush_latency, elapsed); break;
+      ictx->perfcounter->tinc(l_librbd_aio_flush_latency, coarse_mono_clock::now() - start_time); break;
     default:
       lderr(cct) << "completed invalid aio_type: " << aio_type << dendl;
       break;
@@ -117,7 +117,7 @@ namespace librbd {
     if (ictx == NULL) {
       ictx = i;
       aio_type = t;
-      start_time = ceph_clock_now(ictx->cct);
+      start_time = coarse_mono_clock::now();
     }
   }
 

@@ -50,8 +50,8 @@ typedef int (OmapBench::*test_t)(omap_generator_t omap_gen);
 class Writer{
 protected:
   string oid;
-  utime_t begin_time;
-  utime_t end_time;
+  ceph::mono_time begin_time;
+  ceph::mono_time end_time;
   std::map<std::string,bufferlist> omap;
   OmapBench *ob;
   friend class OmapBench;

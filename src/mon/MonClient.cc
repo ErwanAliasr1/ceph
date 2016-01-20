@@ -48,6 +48,9 @@
 #undef dout_prefix
 #define dout_prefix *_dout << "monclient" << (hunting ? "(hunting)":"") << ": "
 
+using ceph::coarse_mono_clock;
+using std::chrono::seconds;
+
 MonClient::MonClient(CephContext *cct_) :
   Dispatcher(cct_),
   state(MC_STATE_NONE),
@@ -717,7 +720,7 @@ void MonClient::tick()
     _reopen_session();
   } else if (!cur_mon.empty()) {
     // just renew as needed
-    utime_t now = ceph_clock_now(cct);
+    ceph::mono_time now = coarse_mono_clock::now();
     if (!cur_con->has_feature(CEPH_FEATURE_MON_STATEFUL_SUB)) {
       ldout(cct, 10) << "renew subs? (now: " << now
 		     << "; renew after: " << sub_renew_after << ") -- "
@@ -733,7 +736,7 @@ void MonClient::tick()
       if (cct->_conf->mon_client_ping_timeout > 0 &&
 	  cur_con->has_feature(CEPH_FEATURE_MSGR_KEEPALIVE2)) {
 	utime_t lk = cur_con->get_last_keepalive_ack();
-	utime_t interval = now - lk;
+	utime_t interval = ceph_clock_now(cct)  - lk;
 	if (interval > cct->_conf->mon_client_ping_timeout) {
 	  ldout(cct, 1) << "no keepalive since " << lk << " (" << interval
 			<< " seconds), reconnecting" << dendl;
@@ -771,8 +774,8 @@ void MonClient::_renew_subs()
   if (cur_mon.empty())
     _reopen_session();
   else {
-    if (sub_renew_sent == utime_t())
-      sub_renew_sent = ceph_clock_now(cct);
+    if (sub_renew_sent == std::chrono::time_point<mono_clock>(seconds(0)))
+      sub_renew_sent = coarse_mono_clock::now();
 
     MMonSubscribe *m = new MMonSubscribe;
     m->what = sub_new;
@@ -785,13 +788,13 @@ void MonClient::_renew_subs()
 
 void MonClient::handle_subscribe_ack(MMonSubscribeAck *m)
 {
-  if (sub_renew_sent != utime_t()) {
+  if (sub_renew_sent != std::chrono::time_point<mono_clock>(seconds(0))) {
     // NOTE: this is only needed for legacy (infernalis or older)
     // mons; see tick().
     sub_renew_after = sub_renew_sent;
-    sub_renew_after += m->interval / 2.0;
+    sub_renew_after += std::chrono::milliseconds(m->interval * 1000 / 2);
     ldout(cct, 10) << "handle_subscribe_ack sent " << sub_renew_sent << " renew after " << sub_renew_after << dendl;
-    sub_renew_sent = utime_t();
+    sub_renew_sent = std::chrono::time_point<mono_clock>(seconds(0));
   } else {
     ldout(cct, 10) << "handle_subscribe_ack sent " << sub_renew_sent << ", ignoring" << dendl;
   }

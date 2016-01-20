@@ -27,6 +27,9 @@
 #define dout_subsys ceph_subsys_paxos
 #undef dout_prefix
 #define dout_prefix _prefix(_dout, mon, mon->name, mon->rank, paxos_name, state, first_committed, last_committed)
+
+using ceph::coarse_mono_clock;
+
 static ostream& _prefix(std::ostream *_dout, Monitor *mon, const string& name,
 		        int rank, const string& paxos_name, int state,
 			version_t first_committed, version_t last_committed)
@@ -244,11 +247,11 @@ void Paxos::handle_collect(MonOpRequestRef op)
     logger->inc(l_paxos_collect);
     logger->inc(l_paxos_collect_keys, t->get_keys());
     logger->inc(l_paxos_collect_bytes, t->get_bytes());
-    utime_t start = ceph_clock_now(NULL);
+    ceph::mono_time start = coarse_mono_clock::now();
 
     get_store()->apply_transaction(t);
 
-    utime_t end = ceph_clock_now(NULL);
+    ceph::mono_time end = coarse_mono_clock::now();
     logger->tinc(l_paxos_collect_latency, end - start);
   } else {
     // don't accept!
@@ -411,11 +414,11 @@ bool Paxos::store_state(MMonPaxos *m)
     logger->inc(l_paxos_store_state);
     logger->inc(l_paxos_store_state_bytes, t->get_bytes());
     logger->inc(l_paxos_store_state_keys, t->get_keys());
-    utime_t start = ceph_clock_now(NULL);
+    ceph::mono_time start = coarse_mono_clock::now();
 
     get_store()->apply_transaction(t);
 
-    utime_t end = ceph_clock_now(NULL);
+    ceph::mono_time end = coarse_mono_clock::now();
     logger->tinc(l_paxos_store_state_latency, end - start);
 
     // refresh first_committed; this txn may have trimmed.
@@ -655,11 +658,11 @@ void Paxos::begin(bufferlist& v)
   logger->inc(l_paxos_begin);
   logger->inc(l_paxos_begin_keys, t->get_keys());
   logger->inc(l_paxos_begin_bytes, t->get_bytes());
-  utime_t start = ceph_clock_now(NULL);
+  ceph::mono_time start = coarse_mono_clock::now();
 
   get_store()->apply_transaction(t);
 
-  utime_t end = ceph_clock_now(NULL);
+  ceph::mono_time end = coarse_mono_clock::now();
   logger->tinc(l_paxos_begin_latency, end - start);
 
   assert(g_conf->paxos_kill_at != 3);
@@ -736,11 +739,11 @@ void Paxos::handle_begin(MonOpRequestRef op)
   *_dout << dendl;
 
   logger->inc(l_paxos_begin_bytes, t->get_bytes());
-  utime_t start = ceph_clock_now(NULL);
+  ceph::mono_time start = coarse_mono_clock::now();
 
   get_store()->apply_transaction(t);
 
-  utime_t end = ceph_clock_now(NULL);
+  ceph::mono_time end = coarse_mono_clock::now();
   logger->tinc(l_paxos_begin_latency, end - start);
 
   assert(g_conf->paxos_kill_at != 5);
@@ -1012,12 +1015,12 @@ bool Paxos::do_refresh()
 {
   bool need_bootstrap = false;
 
-  utime_t start = ceph_clock_now(NULL);
+  ceph::mono_time start = coarse_mono_clock::now();
 
   // make sure we have the latest state loaded up
   mon->refresh_from_paxos(&need_bootstrap);
 
-  utime_t end = ceph_clock_now(NULL);
+  ceph::mono_time end = coarse_mono_clock::now();
   logger->inc(l_paxos_refresh);
   logger->tinc(l_paxos_refresh_latency, end - start);
 
@@ -1244,11 +1247,11 @@ version_t Paxos::get_new_proposal_number(version_t gt)
   *_dout << dendl;
 
   logger->inc(l_paxos_new_pn);
-  utime_t start = ceph_clock_now(NULL);
+  ceph::mono_time start = coarse_mono_clock::now();
 
   get_store()->apply_transaction(t);
 
-  utime_t end = ceph_clock_now(NULL);
+  ceph::mono_time end = coarse_mono_clock::now();
   logger->tinc(l_paxos_new_pn_latency, end - start);
 
   dout(10) << "get_new_proposal_number = " << last_pn << dendl;

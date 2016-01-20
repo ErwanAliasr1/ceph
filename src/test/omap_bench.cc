@@ -29,6 +29,7 @@
 
 using namespace std;
 using ceph::bufferlist;
+using ceph::coarse_mono_clock;
 
 int OmapBench::setup(int argc, const char** argv) {
   //parse key_value_store_bench args
@@ -133,13 +134,13 @@ Writer::Writer(OmapBench *omap_bench) : ob(omap_bench) {
   oid = name.str();
 }
 void Writer::start_time() {
-  begin_time = ceph_clock_now(g_ceph_context);
+  begin_time = coarse_mono_clock::now();
 }
 void Writer::stop_time() {
-  end_time = ceph_clock_now(g_ceph_context);
+  end_time = coarse_mono_clock::now();
 }
 double Writer::get_time() {
-  return (end_time - begin_time) * 1000;
+  return duration_to_msec_double(end_time - begin_time);
 }
 string Writer::get_oid() {
   return oid;
