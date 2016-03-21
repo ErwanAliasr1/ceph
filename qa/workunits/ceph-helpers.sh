@@ -151,10 +151,9 @@ function test_teardown() {
 function kill_daemon() {
     local pid=$(cat $1)
     local send_signal=$2
-    local delays=${4:-0 0 1 1 1 2 3 5 5 5 10 10 20 60 60 60 120}
+    local delays=${4:-0.1 0.2 1 1 1 2 3 5 5 5 10 10 20 60 60 60 120}
     local exit_code=1
     for try in $delays ; do
-         sleep $try
          if kill -$send_signal $pid 2> /dev/null ; then
             exit_code=1
          else
@@ -162,6 +161,7 @@ function kill_daemon() {
             break
          fi
          send_signal=0
+         sleep $try
     done;
     return $exit_code
 }
