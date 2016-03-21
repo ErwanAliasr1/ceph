@@ -146,6 +146,27 @@ function test_teardown() {
 #######################################################################
 
 ##
+# Kills a single daemon. This is an helper function fo kill_daemons
+#
+function kill_daemon() {
+    local pid=$(cat $1)
+    local send_signal=$2
+    local delays=${4:-0 0 1 1 1 2 3 5 5 5 10 10 20 60 60 60 120}
+    local exit_code=1
+    for try in $delays ; do
+         sleep $try
+         if kill -$send_signal $pid 2> /dev/null ; then
+            exit_code=1
+         else
+	    exit_code=0
+            break
+         fi
+         send_signal=0
+    done;
+    return $exit_code
+}
+
+##
 # Kill all daemons for which a .pid file exists in **dir**.  Each
 # daemon is sent a **signal** and kill_daemons waits for it to exit
 # during a few minutes. By default all daemons are killed. If a
@@ -197,27 +218,16 @@ function kill_daemons() {
     local dir=$1
     local signal=${2:-TERM}
     local name_prefix=$3 # optional, osd, mon, osd.1
-    local delays=${4:-0 0 1 1 1 2 3 5 5 5 10 10 20 60 60 60 120}
-
     local status=0
+    local pids=""
+
     for pidfile in $(find $dir 2>/dev/null | grep $name_prefix'[^/]*\.pid') ; do
-        pid=$(cat $pidfile)
-        local send_signal=$signal
-        local kill_complete=false
-        for try in $delays ; do
-            sleep $try
-            if kill -$send_signal $pid 2> /dev/null ; then
-                kill_complete=false
-            else
-                kill_complete=true
-                break
-            fi
-            send_signal=0
-        done
-        if ! $kill_complete ; then
-            status=1
-        fi
+	run_in_background pids kill_daemon $pidfile $signal
     done
+
+    wait_background pids
+    status=$?
+
     $trace && shopt -s -o xtrace
     return $status
 }
