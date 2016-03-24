@@ -1282,6 +1282,53 @@ function test_display_logs() {
 }
 
 #######################################################################
+##
+# run_in_background() function spawn the command line passed in
+# argument in background and save the pid in the variable name passed
+# in 1st argument like :
+#
+# pids1=""
+# run_in_background pids1 bash -c 'sleep 1; exit 1'
+#
+function run_in_background() {
+    # The first argument is the name of the PID variable
+    # We execute everything passed in argument
+    # And save the running pid in the variable name
+    local pid_variable=$1
+    shift;
+    "$@" & eval "$pid_variable+=\" $!\""
+}
+
+##
+# wait_background() function wait for pids pointed by the first argument
+# and return the worse return code. If one is different from 0
+# then the function returns 1 like in :
+#
+# pids1=""
+# run_in_background pids1 bash -c 'sleep 1; exit 1'
+# wait_background pids1
+#
+function wait_background() {
+    return_code=0
+    # We extract the PIDS from the variable name
+    for pid in ${!1}; do
+        if ! wait $pid; then
+            # If one process failed then return 1
+            return_code=1
+        fi
+    done
+
+    # We empty the variable reporting that all process ended
+    eval "$1=''"
+
+    return $return_code
+}
+
+
+#######################################################################
+
+
+#######################################################################
 
 ##
 # Call the **run** function (which must be defined by the caller) with
