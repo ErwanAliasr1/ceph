@@ -4758,6 +4758,12 @@ def make_activate_parser(subparsers):
         action='store_true', default=False,
         help='activate the deactived OSD',
     )
+    activate_parser.add_argument(
+        '--cluster',
+        metavar='NAME',
+        default='ceph',
+        help='ceph cluster name (default: ceph)',
+    )
     activate_parser.set_defaults(
         activate_key_template='{statedir}/bootstrap-osd/{cluster}.keyring',
         func=main_activate,
